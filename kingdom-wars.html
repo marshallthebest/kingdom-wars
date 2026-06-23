@@ -157,18 +157,9 @@ body { overflow: hidden; background: #0d0d1a; font-family: 'Segoe UI', sans-seri
   </div>
 </div>
 
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/"
-  }
-}
-</script>
-
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
+<script>
 
 // ─────────────────────────────────────────────────────────────
 //  CONSTANTS
@@ -228,7 +219,7 @@ function initThree() {
   renderer = new THREE.WebGLRenderer({ canvas:document.getElementById('canvas'), antialias:true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
-  controls = new OrbitControls(camera, renderer.domElement);
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.target.set(cx, 0, cz);
   controls.maxPolarAngle = Math.PI/2.2;
   controls.minDistance = 6; controls.maxDistance = 70;
