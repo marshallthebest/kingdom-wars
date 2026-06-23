@@ -158,7 +158,52 @@ body { overflow: hidden; background: #0d0d1a; font-family: 'Segoe UI', sans-seri
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// Minimal orbit controls — rotate (left drag), pan (right drag), zoom (wheel)
+class SimpleOrbitControls {
+  constructor(camera, domElement) {
+    this.camera = camera;
+    this.domElement = domElement;
+    this.target = new THREE.Vector3();
+    this.minDistance = 6; this.maxDistance = 70;
+    this.maxPolarAngle = Math.PI / 2;
+    this._spherical = new THREE.Spherical();
+    this._offset = new THREE.Vector3();
+    this._dragging = false;
+    this._button = -1;
+    this._lastX = 0; this._lastY = 0;
+    domElement.addEventListener('mousedown', e => { this._dragging = true; this._button = e.button; this._lastX = e.clientX; this._lastY = e.clientY; });
+    window.addEventListener('mouseup', () => { this._dragging = false; });
+    window.addEventListener('mousemove', e => this._onMove(e));
+    domElement.addEventListener('wheel', e => this._onWheel(e), { passive: true });
+    domElement.addEventListener('contextmenu', e => e.preventDefault());
+  }
+  _onMove(e) {
+    if (!this._dragging) return;
+    const dx = e.clientX - this._lastX, dy = e.clientY - this._lastY;
+    this._lastX = e.clientX; this._lastY = e.clientY;
+    if (this._button === 0) { // rotate
+      this._spherical.theta -= dx * 0.005;
+      this._spherical.phi = Math.max(0.1, Math.min(this.maxPolarAngle, this._spherical.phi + dy * 0.005));
+    } else { // pan
+      const pan = new THREE.Vector3(-dx * 0.05, 0, -dy * 0.05);
+      pan.applyQuaternion(this.camera.quaternion);
+      pan.y = 0;
+      this.target.add(pan);
+    }
+    this.update();
+  }
+  _onWheel(e) {
+    this._spherical.radius = Math.max(this.minDistance, Math.min(this.maxDistance, this._spherical.radius * (1 + e.deltaY * 0.001)));
+    this.update();
+  }
+  update() {
+    this._offset.setFromSpherical(this._spherical);
+    this.camera.position.copy(this.target).add(this._offset);
+    this.camera.lookAt(this.target);
+  }
+}
+</script>
 <script>
 
 // ─────────────────────────────────────────────────────────────
@@ -219,10 +264,13 @@ function initThree() {
   renderer = new THREE.WebGLRenderer({ canvas:document.getElementById('canvas'), antialias:true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
-  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls = new SimpleOrbitControls(camera, renderer.domElement);
   controls.target.set(cx, 0, cz);
   controls.maxPolarAngle = Math.PI/2.2;
   controls.minDistance = 6; controls.maxDistance = 70;
+  // Init spherical from current camera position
+  controls._offset.subVectors(camera.position, controls.target);
+  controls._spherical.setFromVector3(controls._offset);
   controls.update();
 
   // Lighting (no shadows — keeps it compatible across all browsers/environments)
@@ -937,7 +985,6 @@ let clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const t = clock.getElapsedTime();
-  controls.update();
 
   // Gentle sway for soldiers / flags
   tiles.forEach(row=>row.forEach(tile=>{
